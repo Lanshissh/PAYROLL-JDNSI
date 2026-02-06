@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import './Layout.css';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -12,62 +13,45 @@ export default function AdminLayout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: 220,
-          background: '#1e293b',
-          color: '#fff',
-          padding: 16
-        }}
-      >
-        <h3>Payroll System</h3>
-        <p style={{ fontSize: 12, opacity: 0.7 }}>Role: {role}</p>
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <div className="app-sidebar__brand">
+          <h3>Payroll System</h3>
+          <span className="app-sidebar__role">Role: {role}</span>
+        </div>
 
-        <nav style={{ marginTop: 24 }}>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li style={{ marginBottom: 12, cursor: 'pointer' }}
-                onClick={() => navigate('/admin')}>
+        <nav>
+          <ul className="app-sidebar__nav">
+            <li className="app-sidebar__link" onClick={() => navigate('/admin')}>
               Dashboard
             </li>
-
-            <li style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => navigate('/admin/payroll')} >
-                Payroll
+            <li className="app-sidebar__link" onClick={() => navigate('/admin/payroll')}>
+              Payroll
             </li>
-
-            <li style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => navigate('/admin/payroll-approvals')}>
-                Payroll Approvals
+            <li
+              className="app-sidebar__link"
+              onClick={() => navigate('/admin/payroll-approvals')}
+            >
+              Payroll Approvals
             </li>
-            
-            <li style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => navigate('/admin/payroll-lock')}>
-                Lock & Payslips
+            <li className="app-sidebar__link" onClick={() => navigate('/admin/payroll-lock')}>
+              Lock & Payslips
             </li>
-
-            <li style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => navigate('/admin/analytics')}>
-                Analytics
+            <li className="app-sidebar__link" onClick={() => navigate('/admin/analytics')}>
+              Analytics
             </li>
-
-            <li style={{ marginBottom: 12, cursor: 'pointer' }}>
-              Employees
-            </li>
+            <li className="app-sidebar__link">Employees</li>
           </ul>
         </nav>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: 24,
-            padding: '8px 12px',
-            width: '100%'
-          }}
-        >
-          Logout
-        </button>
+        <div className="app-sidebar__footer">
+          <button className="app-sidebar__button" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: 24 }}>
+      <main className="app-main">
         <Outlet />
       </main>
     </div>
