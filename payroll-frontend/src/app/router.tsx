@@ -4,7 +4,7 @@ import LoginPage from '../pages/login/LoginPage';
 import AdminDashboard from '../pages/admin/Dashboard';
 import AgencyDashboard from '../pages/agency/Dashboard';
 import EmployeeDashboard from '../pages/employee/Dashboard';
-import LeavePage from '../pages/employee/Leavepage';
+import LeavePage from '../pages/employee/LeavePage';
 import LeaveApprovalPage from '../pages/agency/LeaveApprovalPage';
 import PayrollPage from '../pages/admin/PayrollPage';
 import PayrollApprovalPage from '../pages/admin/PayrollApprovalPage';
