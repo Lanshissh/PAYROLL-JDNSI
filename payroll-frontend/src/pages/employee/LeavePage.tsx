@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getMyLeaves, createLeave } from '../../api/leave';
 
+import Card from '../../components/common/Card';
+import DataTable from '../../components/common/DataTable';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
+import { notify } from '../../components/common/toast';
+
 type Leave = {
   id: string;
   leave_type: string;
@@ -30,86 +36,106 @@ export default function LeavePage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    await createLeave(form);
-    setForm({
-      leave_type: 'vacation',
-      start_date: '',
-      end_date: '',
-      reason: ''
-    });
-    load();
+    try {
+      await createLeave(form);
+      notify.success('Leave request submitted');
+      setForm({
+        leave_type: 'vacation',
+        start_date: '',
+        end_date: '',
+        reason: ''
+      });
+      load();
+    } catch {
+      notify.error('Failed to submit leave request');
+    }
   }
 
   useEffect(() => {
     load();
   }, []);
 
+  /* -----------------------------
+     DataTable columns
+  ------------------------------ */
+
+  const columns = [
+    { header: 'Type', render: (l: Leave) => l.leave_type },
+    { header: 'From', render: (l: Leave) => l.start_date },
+    { header: 'To', render: (l: Leave) => l.end_date },
+    { header: 'Status', render: (l: Leave) => l.status },
+    {
+      header: 'Paid',
+      render: (l: Leave) => (l.is_paid ? 'Yes' : 'No')
+    }
+  ];
+
   return (
     <div>
       <h2>My Leave Requests</h2>
 
-      {/* New Leave */}
-      <form onSubmit={submit} style={{ marginBottom: 24 }}>
-        <select
-          value={form.leave_type}
-          onChange={e => setForm({ ...form, leave_type: e.target.value })}
-        >
-          <option value="vacation">Vacation</option>
-          <option value="sick">Sick</option>
-          <option value="unpaid">Unpaid</option>
-        </select>
+      {/* Submit Leave */}
+      <Card title="Request Leave">
+        <form onSubmit={submit}>
+          <select
+            value={form.leave_type}
+            onChange={e =>
+              setForm({ ...form, leave_type: e.target.value })
+            }
+          >
+            <option value="vacation">Vacation</option>
+            <option value="sick">Sick</option>
+            <option value="unpaid">Unpaid</option>
+          </select>
 
-        <input
-          type="date"
-          value={form.start_date}
-          onChange={e => setForm({ ...form, start_date: e.target.value })}
-          required
-        />
+          <input
+            type="date"
+            value={form.start_date}
+            onChange={e =>
+              setForm({ ...form, start_date: e.target.value })
+            }
+            required
+            style={{ marginLeft: 8 }}
+          />
 
-        <input
-          type="date"
-          value={form.end_date}
-          onChange={e => setForm({ ...form, end_date: e.target.value })}
-          required
-        />
+          <input
+            type="date"
+            value={form.end_date}
+            onChange={e =>
+              setForm({ ...form, end_date: e.target.value })
+            }
+            required
+            style={{ marginLeft: 8 }}
+          />
 
-        <input
-          type="text"
-          placeholder="Reason (optional)"
-          value={form.reason}
-          onChange={e => setForm({ ...form, reason: e.target.value })}
-        />
+          <input
+            type="text"
+            placeholder="Reason (optional)"
+            value={form.reason}
+            onChange={e =>
+              setForm({ ...form, reason: e.target.value })
+            }
+            style={{ marginLeft: 8 }}
+          />
 
-        <button type="submit">Submit Leave</button>
-      </form>
+          <button type="submit" style={{ marginLeft: 12 }}>
+            Submit Leave
+          </button>
+        </form>
+      </Card>
 
-      {/* Leave List */}
-      {loading ? (
-        <p>Loading…</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Status</th>
-              <th>Paid</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaves.map(l => (
-              <tr key={l.id}>
-                <td>{l.leave_type}</td>
-                <td>{l.start_date}</td>
-                <td>{l.end_date}</td>
-                <td>{l.status}</td>
-                <td>{l.is_paid ? 'Yes' : 'No'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {/* Leave History */}
+      <Card title="Leave History">
+        {loading && <LoadingState />}
+
+        {!loading && leaves.length === 0 && (
+          <EmptyState message="No leave requests found." />
+        )}
+
+        {!loading && leaves.length > 0 && (
+          <DataTable data={leaves} columns={columns} />
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 import Tabs from '../../components/common/Tabs';
+import Card from '../../components/common/Card';
+import DataTable from '../../components/common/DataTable';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
+
 import {
   getPayrollSummaryAnalytics,
   getOTSummaryAnalytics,
@@ -19,7 +24,9 @@ import {
 } from 'recharts';
 
 export default function AnalyticsPage() {
-  const [activeTab, setActiveTab] = useState('payroll');
+  const [activeTab, setActiveTab] = useState<'payroll' | 'ot' | 'absence'>(
+    'payroll'
+  );
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,15 +34,15 @@ export default function AnalyticsPage() {
     setLoading(true);
 
     if (activeTab === 'payroll') {
-      setData(await getPayrollSummaryAnalytics() ?? []);
+      setData((await getPayrollSummaryAnalytics()) ?? []);
     }
 
     if (activeTab === 'ot') {
-      setData(await getOTSummaryAnalytics() ?? []);
+      setData((await getOTSummaryAnalytics()) ?? []);
     }
 
     if (activeTab === 'absence') {
-      setData(await getAbsenceSummaryAnalytics() ?? []);
+      setData((await getAbsenceSummaryAnalytics()) ?? []);
     }
 
     setLoading(false);
@@ -47,7 +54,7 @@ export default function AnalyticsPage() {
 
   /* -----------------------------
      Chart data mappers
-  ------------------------------*/
+  ------------------------------ */
 
   const otChartData = data.map(s => ({
     period: `${s.dimensions.period_start} → ${s.dimensions.period_end}`,
@@ -58,6 +65,53 @@ export default function AnalyticsPage() {
     period: `${s.dimensions.period_start} → ${s.dimensions.period_end}`,
     absence_rate: s.metrics.absence_rate
   }));
+
+  /* -----------------------------
+     Table column definitions
+  ------------------------------ */
+
+  const payrollColumns = [
+    {
+      header: 'Period',
+      render: (s: any) =>
+        `${s.dimensions.period_start} → ${s.dimensions.period_end}`
+    },
+    { header: 'Employees', render: (s: any) => s.metrics.total_employees },
+    {
+      header: 'Gross Pay',
+      render: (s: any) => s.metrics.gross_pay?.toLocaleString()
+    },
+    { header: 'OT Hours', render: (s: any) => s.metrics.total_ot_hours },
+    { header: 'Leave Days', render: (s: any) => s.metrics.total_leave_days }
+  ];
+
+  const otColumns = [
+    {
+      header: 'Period',
+      render: (s: any) =>
+        `${s.dimensions.period_start} → ${s.dimensions.period_end}`
+    },
+    { header: 'OT Hours', render: (s: any) => s.metrics.total_ot_hours },
+    {
+      header: 'OT Cost',
+      render: (s: any) => s.metrics.total_ot_cost?.toLocaleString()
+    }
+  ];
+
+  const absenceColumns = [
+    {
+      header: 'Period',
+      render: (s: any) =>
+        `${s.dimensions.period_start} → ${s.dimensions.period_end}`
+    },
+    { header: 'Paid Leave', render: (s: any) => s.metrics.paid_leave_days },
+    { header: 'Unpaid Leave', render: (s: any) => s.metrics.unpaid_leave_days },
+    {
+      header: 'Absence Rate',
+      render: (s: any) =>
+        `${(s.metrics.absence_rate * 100).toFixed(2)}%`
+    }
+  ];
 
   return (
     <div>
@@ -73,25 +127,17 @@ export default function AnalyticsPage() {
         onChange={setActiveTab}
       />
 
-      {loading ? (
-        <p>Loading…</p>
-      ) : data.length === 0 ? (
-        <p>No data available.</p>
-      ) : (
+      {loading && <LoadingState />}
+
+      {!loading && data.length === 0 && <EmptyState />}
+
+      {!loading && data.length > 0 && (
         <>
           {/* =========================
               OVERTIME CHART
           ========================== */}
           {activeTab === 'ot' && (
-            <div
-              style={{
-                background: '#fff',
-                padding: 20,
-                borderRadius: 12,
-                marginBottom: 24
-              }}
-            >
-              <h3>Overtime Hours Trend</h3>
+            <Card title="Overtime Hours Trend">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={otChartData}>
                   <XAxis dataKey="period" />
@@ -100,22 +146,14 @@ export default function AnalyticsPage() {
                   <Bar dataKey="total_ot_hours" fill="#2563eb" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </Card>
           )}
 
           {/* =========================
               ABSENCE CHART
           ========================== */}
           {activeTab === 'absence' && (
-            <div
-              style={{
-                background: '#fff',
-                padding: 20,
-                borderRadius: 12,
-                marginBottom: 24
-              }}
-            >
-              <h3>Absence Rate Trend</h3>
+            <Card title="Absence Rate Trend">
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={absenceChartData}>
                   <XAxis dataKey="period" />
@@ -124,8 +162,12 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     formatter={(value) => {
-                      if (typeof value !== 'number') return ['0%', 'Absence Rate'];
-                      return [`${(value * 100).toFixed(2)}%`, 'Absence Rate'];
+                      if (typeof value !== 'number')
+                        return ['0%', 'Absence Rate'];
+                      return [
+                        `${(value * 100).toFixed(2)}%`,
+                        'Absence Rate'
+                      ];
                     }}
                   />
                   <Line
@@ -136,79 +178,24 @@ export default function AnalyticsPage() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </Card>
           )}
 
           {/* =========================
-              DATA TABLE (UNCHANGED)
+              DATA TABLE
           ========================== */}
-          <table>
-            <thead>
-              <tr>
-                <th>Period</th>
-
-                {activeTab === 'payroll' && (
-                  <>
-                    <th>Employees</th>
-                    <th>Gross Pay</th>
-                    <th>OT Hours</th>
-                    <th>Leave Days</th>
-                  </>
-                )}
-
-                {activeTab === 'ot' && (
-                  <>
-                    <th>OT Hours</th>
-                    <th>OT Cost</th>
-                  </>
-                )}
-
-                {activeTab === 'absence' && (
-                  <>
-                    <th>Paid Leave</th>
-                    <th>Unpaid Leave</th>
-                    <th>Absence Rate</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-
-            <tbody>
-              {data.map((s: any) => (
-                <tr key={s.id}>
-                  <td>
-                    {s.dimensions.period_start} → {s.dimensions.period_end}
-                  </td>
-
-                  {activeTab === 'payroll' && (
-                    <>
-                      <td>{s.metrics.total_employees}</td>
-                      <td>{s.metrics.gross_pay?.toLocaleString()}</td>
-                      <td>{s.metrics.total_ot_hours}</td>
-                      <td>{s.metrics.total_leave_days}</td>
-                    </>
-                  )}
-
-                  {activeTab === 'ot' && (
-                    <>
-                      <td>{s.metrics.total_ot_hours}</td>
-                      <td>{s.metrics.total_ot_cost?.toLocaleString()}</td>
-                    </>
-                  )}
-
-                  {activeTab === 'absence' && (
-                    <>
-                      <td>{s.metrics.paid_leave_days}</td>
-                      <td>{s.metrics.unpaid_leave_days}</td>
-                      <td>
-                        {(s.metrics.absence_rate * 100).toFixed(2)}%
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Card>
+            <DataTable
+              data={data}
+              columns={
+                activeTab === 'payroll'
+                  ? payrollColumns
+                  : activeTab === 'ot'
+                  ? otColumns
+                  : absenceColumns
+              }
+            />
+          </Card>
         </>
       )}
     </div>

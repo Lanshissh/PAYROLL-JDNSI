@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getPayrollRuns, createPayrollRun } from '../../api/payroll';
 
+import Card from '../../components/common/Card';
+import DataTable from '../../components/common/DataTable';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
+import { notify } from '../../components/common/toast';
+
 type PayrollRun = {
   id: string;
   period_start: string;
@@ -28,76 +34,99 @@ export default function PayrollPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    await createPayrollRun(form);
-    setForm({ period_start: '', period_end: '', is_sandbox: true });
-    load();
+    try {
+      await createPayrollRun(form);
+      notify.success(
+        form.is_sandbox
+          ? 'Sandbox payroll created'
+          : 'Payroll run created'
+      );
+      setForm({ period_start: '', period_end: '', is_sandbox: true });
+      load();
+    } catch {
+      notify.error('Failed to create payroll');
+    }
   }
 
   useEffect(() => {
     load();
   }, []);
 
+  /* -----------------------------
+     DataTable column definition
+  ------------------------------ */
+
+  const columns = [
+    {
+      header: 'Period',
+      render: (r: PayrollRun) =>
+        `${r.period_start} → ${r.period_end}`
+    },
+    {
+      header: 'Status',
+      render: (r: PayrollRun) => r.status
+    },
+    {
+      header: 'Type',
+      render: (r: PayrollRun) => (r.is_sandbox ? 'Sandbox' : 'Real')
+    }
+  ];
+
   return (
     <div>
       <h2>Payroll Runs</h2>
 
-      {/* Create payroll */}
-      <form onSubmit={submit} style={{ marginBottom: 24 }}>
-        <input
-          type="date"
-          value={form.period_start}
-          onChange={e => setForm({ ...form, period_start: e.target.value })}
-          required
-        />
-
-        <input
-          type="date"
-          value={form.period_end}
-          onChange={e => setForm({ ...form, period_end: e.target.value })}
-          required
-        />
-
-        <label style={{ marginLeft: 12 }}>
+      {/* Create Payroll */}
+      <Card title="Create Payroll Run">
+        <form onSubmit={submit}>
           <input
-            type="checkbox"
-            checked={form.is_sandbox}
+            type="date"
+            value={form.period_start}
             onChange={e =>
-              setForm({ ...form, is_sandbox: e.target.checked })
+              setForm({ ...form, period_start: e.target.value })
             }
+            required
           />
-          Sandbox
-        </label>
 
-        <button type="submit" style={{ marginLeft: 12 }}>
-          Create Payroll
-        </button>
-      </form>
+          <input
+            type="date"
+            value={form.period_end}
+            onChange={e =>
+              setForm({ ...form, period_end: e.target.value })
+            }
+            required
+            style={{ marginLeft: 8 }}
+          />
 
-      {/* Payroll list */}
-      {loading ? (
-        <p>Loading…</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Status</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map(r => (
-              <tr key={r.id}>
-                <td>
-                  {r.period_start} → {r.period_end}
-                </td>
-                <td>{r.status}</td>
-                <td>{r.is_sandbox ? 'Sandbox' : 'Real'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          <label style={{ marginLeft: 12 }}>
+            <input
+              type="checkbox"
+              checked={form.is_sandbox}
+              onChange={e =>
+                setForm({ ...form, is_sandbox: e.target.checked })
+              }
+            />
+            Sandbox
+          </label>
+
+          <button type="submit" style={{ marginLeft: 12 }}>
+            Create Payroll
+          </button>
+        </form>
+      </Card>
+
+      {/* Payroll List */}
+      <Card title="Payroll History">
+        {loading && <LoadingState />}
+
+        {!loading && runs.length === 0 && (
+          <EmptyState message="No payroll runs found." />
+        )}
+
+        {!loading && runs.length > 0 && (
+          <DataTable data={runs} columns={columns} />
+        )}
+      </Card>
     </div>
   );
 }

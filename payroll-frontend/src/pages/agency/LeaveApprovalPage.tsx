@@ -1,8 +1,25 @@
 import { useEffect, useState } from 'react';
 import { getAgencyPendingLeaves, approveLeave } from '../../api/leave';
 
+import Card from '../../components/common/Card';
+import DataTable from '../../components/common/DataTable';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
+import { notify } from '../../components/common/toast';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+
+type LeaveRequest = {
+  id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  employees?: {
+    full_name: string;
+  }[];
+};
+
 export default function LeaveApprovalPage() {
-  const [leaves, setLeaves] = useState<any[]>([]);
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -12,54 +29,113 @@ export default function LeaveApprovalPage() {
     setLoading(false);
   }
 
-  async function handleAction(id: string, action: 'approve' | 'reject') {
-    await approveLeave(id, action);
-    load();
+  async function handleAction(
+    id: string,
+    action: 'approve' | 'reject'
+  ) {
+    try {
+      await approveLeave(id, action);
+      notify.success(
+        action === 'approve'
+          ? 'Leave approved'
+          : 'Leave rejected'
+      );
+      load();
+    } catch {
+      notify.error('Action failed');
+    }
   }
 
   useEffect(() => {
     load();
   }, []);
 
+  const [confirm, setConfirm] = useState<null | {
+    message: string;
+    onConfirm: () => void;
+  }>(null);
+
+  /* -----------------------------
+     DataTable columns
+  ------------------------------ */
+
+const columns = [
+  {
+    header: 'Employee',
+    render: (l: LeaveRequest) =>
+      l.employees?.[0]?.full_name ?? '—'
+  },
+  {
+    header: 'Type',
+    render: (l: LeaveRequest) => l.leave_type
+  },
+  {
+    header: 'From',
+    render: (l: LeaveRequest) => l.start_date
+  },
+  {
+    header: 'To',
+    render: (l: LeaveRequest) => l.end_date
+  },
+{
+  header: 'Actions',
+  render: (l: LeaveRequest) => (
+    <>
+      <button
+        onClick={() =>
+          setConfirm({
+            message: 'Approve this leave request?',
+            onConfirm: async () => {
+              await handleAction(l.id, 'approve');
+              setConfirm(null);
+            }
+          })
+        }
+        style={{ marginRight: 8 }}
+      >
+        Approve
+      </button>
+
+      <button
+        onClick={() =>
+          setConfirm({
+            message: 'Reject this leave request?',
+            onConfirm: async () => {
+              await handleAction(l.id, 'reject');
+              setConfirm(null);
+            }
+          })
+        }
+      >
+        Reject
+      </button>
+    </>
+  )
+}
+];
+
+  <ConfirmDialog
+    open={!!confirm}
+    message={confirm?.message ?? ''}
+    onConfirm={confirm?.onConfirm ?? (() => {})}
+    onCancel={() => setConfirm(null)}
+  />
+
   return (
     <div>
       <h2>Pending Leave Requests</h2>
 
-      {loading ? (
-        <p>Loading…</p>
-      ) : leaves.length === 0 ? (
-        <p>No pending requests.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Type</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaves.map(l => (
-              <tr key={l.id}>
-                <td>{l.employees?.full_name}</td>
-                <td>{l.leave_type}</td>
-                <td>{l.start_date}</td>
-                <td>{l.end_date}</td>
-                <td>
-                  <button onClick={() => handleAction(l.id, 'approve')}>
-                    Approve
-                  </button>
-                  <button onClick={() => handleAction(l.id, 'reject')}>
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Card title="Leave Approvals">
+        {loading && <LoadingState />}
+
+        {!loading && leaves.length === 0 && (
+          <EmptyState message="No pending leave requests." />
+        )}
+
+        {!loading && leaves.length > 0 && (
+          <DataTable data={leaves} columns={columns} />
+        )}
+      </Card>
     </div>
   );
 }
