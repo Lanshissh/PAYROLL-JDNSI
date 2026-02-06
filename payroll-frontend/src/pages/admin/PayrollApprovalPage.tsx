@@ -5,6 +5,8 @@ import {
   approvePayroll
 } from '../../api/payroll';
 import { useAuth } from '../../auth/AuthContext';
+import { usePendingMap } from '../../hooks/usePendingMap';
+import { notify } from '../../components/common/toast';
 
 type PayrollRun = {
   id: string;
@@ -19,6 +21,8 @@ export default function PayrollApprovalPage() {
   const [runs, setRuns] = useState<PayrollRun[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { isPending, run } = usePendingMap<string>();
+
   async function load() {
     setLoading(true);
     const data = await getPayrollForApproval();
@@ -27,13 +31,23 @@ export default function PayrollApprovalPage() {
   }
 
   async function handleAcknowledge(id: string) {
-    await acknowledgePayroll(id);
-    load();
+    try {
+      await acknowledgePayroll(id);
+      await load();
+      notify.success('Acknowledged');
+    } catch {
+      notify.error('Failed to acknowledge');
+    }
   }
 
   async function handleApprove(id: string) {
-    await approvePayroll(id);
-    load();
+    try {
+      await approvePayroll(id);
+      await load();
+      notify.success('Approved');
+    } catch {
+      notify.error('Failed to approve');
+    }
   }
 
   useEffect(() => {
@@ -77,14 +91,28 @@ export default function PayrollApprovalPage() {
                 <td>{r.is_sandbox ? 'Sandbox' : 'Real'}</td>
                 <td>
                   {canAcknowledge(r.status) && (
-                    <button onClick={() => handleAcknowledge(r.id)}>
-                      Acknowledge
+                    <button
+                      disabled={isPending(r.id)}
+                      onClick={() =>
+                        run(r.id, async () => {
+                          await handleAcknowledge(r.id);
+                        })
+                      }
+                    >
+                      {isPending(r.id) ? 'Working…' : 'Acknowledge'}
                     </button>
                   )}
 
                   {canApprove(r.status) && (
-                    <button onClick={() => handleApprove(r.id)}>
-                      Approve
+                    <button
+                      disabled={isPending(r.id)}
+                      onClick={() =>
+                        run(r.id, async () => {
+                          await handleApprove(r.id);
+                        })
+                      }
+                    >
+                      {isPending(r.id) ? 'Working…' : 'Approve'}
                     </button>
                   )}
                 </td>

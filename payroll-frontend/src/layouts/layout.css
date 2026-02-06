@@ -1,0 +1,100 @@
+/* ===== App Shell ===== */
+.appShell {
+  display: flex;
+  min-height: 100vh;
+  background: #f3f4f6; /* light gray */
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.appMain {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.appContent {
+  padding: 24px;
+}
+
+/* ===== SideNav ===== */
+.sideNav {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+.sideNavHeader {
+  padding: 20px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.brandTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.2px;
+}
+
+.brandSub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Links */
+.sideNavLinks {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.navLink {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #334155;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.navLink:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.navLinkActive {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+/* Footer */
+.sideNavFooter {
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.logoutBtn {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.logoutBtn:hover {
+  background: #f8fafc;
+}
+
+.logoutBtn:active {
+  transform: translateY(1px);
+}

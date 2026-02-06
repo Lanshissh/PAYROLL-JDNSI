@@ -5,6 +5,7 @@ import Card from '../../components/common/Card';
 import DataTable from '../../components/common/DataTable';
 import LoadingState from '../../components/common/LoadingState';
 import EmptyState from '../../components/common/EmptyState';
+import ExportCsvButton from '../../components/common/ExportCsvButton';
 import { notify } from '../../components/common/toast';
 
 type PayrollRun = {
@@ -72,6 +73,14 @@ export default function PayrollPage() {
     }
   ];
 
+  const exportColumns = [
+    { key: 'period_start', header: 'Period Start' },
+    { key: 'period_end', header: 'Period End' },
+    { key: 'status', header: 'Status' },
+    { key: 'is_sandbox', header: 'Sandbox' }
+  ] as const;
+
+
   return (
     <div>
       <h2>Payroll Runs</h2>
@@ -117,6 +126,14 @@ export default function PayrollPage() {
 
       {/* Payroll List */}
       <Card title="Payroll History">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <ExportCsvButton
+            filename={`payroll-runs-${new Date().toISOString().slice(0, 10)}`}
+            rows={runs}
+            columns={exportColumns}
+            disabled={loading || runs.length === 0}
+          />
+        </div>
         {loading && <LoadingState />}
 
         {!loading && runs.length === 0 && (

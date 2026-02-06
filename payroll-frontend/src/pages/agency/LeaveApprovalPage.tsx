@@ -7,6 +7,7 @@ import LoadingState from '../../components/common/LoadingState';
 import EmptyState from '../../components/common/EmptyState';
 import { notify } from '../../components/common/toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { usePendingMap } from '../../hooks/usePendingMap';
 
 type LeaveRequest = {
   id: string;
@@ -22,6 +23,13 @@ export default function LeaveApprovalPage() {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { isPending, run } = usePendingMap<string>();
+
+  const [confirm, setConfirm] = useState<null | {
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>(null);
+
   async function load() {
     setLoading(true);
     const data = await getAgencyPendingLeaves();
@@ -29,18 +37,11 @@ export default function LeaveApprovalPage() {
     setLoading(false);
   }
 
-  async function handleAction(
-    id: string,
-    action: 'approve' | 'reject'
-  ) {
+  async function handleAction(id: string, action: 'approve' | 'reject') {
     try {
       await approveLeave(id, action);
-      notify.success(
-        action === 'approve'
-          ? 'Leave approved'
-          : 'Leave rejected'
-      );
-      load();
+      notify.success(action === 'approve' ? 'Leave approved' : 'Leave rejected');
+      await load();
     } catch {
       notify.error('Action failed');
     }
@@ -50,76 +51,65 @@ export default function LeaveApprovalPage() {
     load();
   }, []);
 
-  const [confirm, setConfirm] = useState<null | {
-    message: string;
-    onConfirm: () => void;
-  }>(null);
-
-  /* -----------------------------
-     DataTable columns
-  ------------------------------ */
-
-const columns = [
-  {
-    header: 'Employee',
-    render: (l: LeaveRequest) =>
-      l.employees?.[0]?.full_name ?? '—'
-  },
-  {
-    header: 'Type',
-    render: (l: LeaveRequest) => l.leave_type
-  },
-  {
-    header: 'From',
-    render: (l: LeaveRequest) => l.start_date
-  },
-  {
-    header: 'To',
-    render: (l: LeaveRequest) => l.end_date
-  },
-{
-  header: 'Actions',
-  render: (l: LeaveRequest) => (
-    <>
-      <button
-        onClick={() =>
-          setConfirm({
-            message: 'Approve this leave request?',
-            onConfirm: async () => {
-              await handleAction(l.id, 'approve');
-              setConfirm(null);
+  const columns = [
+    {
+      header: 'Employee',
+      render: (l: LeaveRequest) => l.employees?.[0]?.full_name ?? '—'
+    },
+    {
+      header: 'Type',
+      render: (l: LeaveRequest) => l.leave_type
+    },
+    {
+      header: 'From',
+      render: (l: LeaveRequest) => l.start_date
+    },
+    {
+      header: 'To',
+      render: (l: LeaveRequest) => l.end_date
+    },
+    {
+      header: 'Actions',
+      render: (l: LeaveRequest) => (
+        <>
+          <button
+            disabled={isPending(l.id)}
+            onClick={() =>
+              setConfirm({
+                message: 'Approve this leave request?',
+                onConfirm: async () => {
+                  await run(l.id, async () => {
+                    await handleAction(l.id, 'approve');
+                  });
+                  setConfirm(null);
+                }
+              })
             }
-          })
-        }
-        style={{ marginRight: 8 }}
-      >
-        Approve
-      </button>
+            style={{ marginRight: 8 }}
+          >
+            {isPending(l.id) ? 'Working…' : 'Approve'}
+          </button>
 
-      <button
-        onClick={() =>
-          setConfirm({
-            message: 'Reject this leave request?',
-            onConfirm: async () => {
-              await handleAction(l.id, 'reject');
-              setConfirm(null);
+          <button
+            disabled={isPending(l.id)}
+            onClick={() =>
+              setConfirm({
+                message: 'Reject this leave request?',
+                onConfirm: async () => {
+                  await run(l.id, async () => {
+                    await handleAction(l.id, 'reject');
+                  });
+                  setConfirm(null);
+                }
+              })
             }
-          })
-        }
-      >
-        Reject
-      </button>
-    </>
-  )
-}
-];
-
-  <ConfirmDialog
-    open={!!confirm}
-    message={confirm?.message ?? ''}
-    onConfirm={confirm?.onConfirm ?? (() => {})}
-    onCancel={() => setConfirm(null)}
-  />
+          >
+            {isPending(l.id) ? 'Working…' : 'Reject'}
+          </button>
+        </>
+      )
+    }
+  ];
 
   return (
     <div>
@@ -132,10 +122,16 @@ const columns = [
           <EmptyState message="No pending leave requests." />
         )}
 
-        {!loading && leaves.length > 0 && (
-          <DataTable data={leaves} columns={columns} />
-        )}
+        {!loading && leaves.length > 0 && <DataTable data={leaves} columns={columns} />}
       </Card>
+
+      <ConfirmDialog
+        open={!!confirm}
+        message={confirm?.message ?? ''}
+        onConfirm={confirm?.onConfirm ?? (async () => {})}
+        onCancel={() => setConfirm(null)}
+        confirmText="Yes, proceed"
+      />
     </div>
   );
 }

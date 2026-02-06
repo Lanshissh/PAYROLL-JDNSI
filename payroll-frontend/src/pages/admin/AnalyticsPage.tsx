@@ -4,6 +4,7 @@ import Card from '../../components/common/Card';
 import DataTable from '../../components/common/DataTable';
 import LoadingState from '../../components/common/LoadingState';
 import EmptyState from '../../components/common/EmptyState';
+import ExportCsvButton from '../../components/common/ExportCsvButton';
 
 import {
   getPayrollSummaryAnalytics,
@@ -113,6 +114,66 @@ export default function AnalyticsPage() {
     }
   ];
 
+
+  /* -----------------------------
+     CSV export (current tab)
+  ------------------------------ */
+
+  const exportFilename = `analytics-${activeTab}-${new Date().toISOString().slice(0, 10)}`;
+
+  const exportPayload = (() => {
+    if (activeTab === 'payroll') {
+      const rows = data.map(s => ({
+        period_start: s.dimensions.period_start,
+        period_end: s.dimensions.period_end,
+        total_employees: s.metrics.total_employees,
+        gross_pay: s.metrics.gross_pay,
+        total_ot_hours: s.metrics.total_ot_hours,
+        total_leave_days: s.metrics.total_leave_days
+      }));
+      const columns = [
+        { key: 'period_start', header: 'Period Start' },
+        { key: 'period_end', header: 'Period End' },
+        { key: 'total_employees', header: 'Employees' },
+        { key: 'gross_pay', header: 'Gross Pay' },
+        { key: 'total_ot_hours', header: 'OT Hours' },
+        { key: 'total_leave_days', header: 'Leave Days' }
+      ] as const;
+      return { rows, columns };
+    }
+
+    if (activeTab === 'ot') {
+      const rows = data.map(s => ({
+        period_start: s.dimensions.period_start,
+        period_end: s.dimensions.period_end,
+        total_ot_hours: s.metrics.total_ot_hours,
+        total_ot_cost: s.metrics.total_ot_cost
+      }));
+      const columns = [
+        { key: 'period_start', header: 'Period Start' },
+        { key: 'period_end', header: 'Period End' },
+        { key: 'total_ot_hours', header: 'OT Hours' },
+        { key: 'total_ot_cost', header: 'OT Cost' }
+      ] as const;
+      return { rows, columns };
+    }
+
+    const rows = data.map(s => ({
+      period_start: s.dimensions.period_start,
+      period_end: s.dimensions.period_end,
+      paid_leave_days: s.metrics.paid_leave_days,
+      unpaid_leave_days: s.metrics.unpaid_leave_days,
+      absence_rate: s.metrics.absence_rate
+    }));
+    const columns = [
+      { key: 'period_start', header: 'Period Start' },
+      { key: 'period_end', header: 'Period End' },
+      { key: 'paid_leave_days', header: 'Paid Leave Days' },
+      { key: 'unpaid_leave_days', header: 'Unpaid Leave Days' },
+      { key: 'absence_rate', header: 'Absence Rate' }
+    ] as const;
+    return { rows, columns };
+  })();
   return (
     <div>
       <h2>Analytics Dashboard</h2>
@@ -185,6 +246,14 @@ export default function AnalyticsPage() {
               DATA TABLE
           ========================== */}
           <Card>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <ExportCsvButton
+                filename={exportFilename}
+                rows={exportPayload.rows}
+                columns={exportPayload.columns}
+                disabled={loading || data.length === 0}
+              />
+            </div>
             <DataTable
               data={data}
               columns={
