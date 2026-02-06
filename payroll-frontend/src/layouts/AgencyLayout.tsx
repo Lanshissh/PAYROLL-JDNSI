@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import './Layout.css';
 
 export default function AgencyLayout() {
   const navigate = useNavigate();
@@ -12,60 +13,35 @@ export default function AgencyLayout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: 220,
-          background: '#0f766e',
-          color: '#fff',
-          padding: 16
-        }}
-      >
-        <h3>Agency Portal</h3>
-        <p style={{ fontSize: 12, opacity: 0.8 }}>Role: {role}</p>
+    <div className="app-shell">
+      <aside className="app-sidebar app-sidebar--agency">
+        <div className="app-sidebar__brand">
+          <h3>Agency Portal</h3>
+          <span className="app-sidebar__role">Role: {role}</span>
+        </div>
 
-        <nav style={{ marginTop: 24 }}>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li
-              style={{ marginBottom: 12, cursor: 'pointer' }}
-              onClick={() => navigate('/agency')}
-            >
+        <nav>
+          <ul className="app-sidebar__nav">
+            <li className="app-sidebar__link" onClick={() => navigate('/agency')}>
               Dashboard
             </li>
-
-            <li style={{ marginBottom: 12 }}>
-              Employees
+            <li className="app-sidebar__link">Employees</li>
+            <li className="app-sidebar__link">Schedules</li>
+            <li className="app-sidebar__link" onClick={() => navigate('/agency/leave')}>
+              Leave Requests
             </li>
-
-            <li style={{ marginBottom: 12 }}>
-              Schedules
-            </li>
-
-            <li style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => navigate('/agency/leave')}>
-                Leave Requests
-            </li>
-
-            <li style={{ marginBottom: 12 }}>
-              Logsheets
-            </li>
+            <li className="app-sidebar__link">Logsheets</li>
           </ul>
         </nav>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: 24,
-            padding: '8px 12px',
-            width: '100%'
-          }}
-        >
-          Logout
-        </button>
+        <div className="app-sidebar__footer">
+          <button className="app-sidebar__button" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: 24 }}>
+      <main className="app-main">
         <Outlet />
       </main>
     </div>
